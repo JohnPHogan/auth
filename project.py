@@ -18,12 +18,13 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
+# Create a token and store it for later use
 @app.route('/login')
 def showLogin():
     state = ''.join(random.choice(
         string.ascii_uppercase + string.digits) for x in xrange(32))
     login_session['state'] = state
-    return "The current login state is %s" % login_session['state']
+    return render_template('login.html')
 
 
 # JSON APIs to view Restaurant Information
@@ -31,7 +32,6 @@ def showLogin():
 
 @app.route('/restaurant/<int:restaurant_id>/menu/JSON')
 def restaurantMenuJSON(restaurant_id):
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
     items = session.query(MenuItem).filter_by(
         restaurant_id=restaurant_id).all()
     return jsonify(MenuItems=[i.serialize for i in items])
@@ -61,9 +61,9 @@ def showRestaurants():
 @app.route('/restaurant/new/', methods=['GET', 'POST'])
 def newRestaurant():
     if request.method == 'POST':
-        newRestaurant = Restaurant(name=request.form['name'])
+        addRestaurant = Restaurant(name=request.form['name'])
         session.add(newRestaurant)
-        flash('New Restaurant %s Successfully Created' % newRestaurant.name)
+        flash('New Restaurant %s Successfully Created' % addRestaurant.name)
         session.commit()
         return redirect(url_for('showRestaurants'))
     else:
@@ -115,7 +115,6 @@ def showMenu(restaurant_id):
 @app.route(
     '/restaurant/<int:restaurant_id>/menu/new/', methods=['GET', 'POST'])
 def newMenuItem(restaurant_id):
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
     if request.method == 'POST':
         newItem = MenuItem(
                             name=request.form['name'],
@@ -140,7 +139,6 @@ def newMenuItem(restaurant_id):
 def editMenuItem(restaurant_id, menu_id):
 
     editedItem = session.query(MenuItem).filter_by(id=menu_id).one()
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
     if request.method == 'POST':
         if request.form['name']:
             editedItem.name = request.form['name']
@@ -167,7 +165,6 @@ def editMenuItem(restaurant_id, menu_id):
     '/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete',
     methods=['GET', 'POST'])
 def deleteMenuItem(restaurant_id, menu_id):
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
     itemToDelete = session.query(MenuItem).filter_by(id=menu_id).one()
     if request.method == 'POST':
         session.delete(itemToDelete)
